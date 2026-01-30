@@ -1,55 +1,54 @@
-const express = require('express');
-const cors = require('cors');
-const mongoose = require('mongoose');
-const User = require('./models/User');
-const authRoutes = require('./routes/authRoutes');
+const express = require("express");
+const cors = require("cors");
+const mongoose = require("mongoose");
+const authRoutes = require("./routes/authRoutes");
+const jobRoutes = require("./routes/jobRoutes");
+const { protect, allowRoles } = require("./middleware/authMiddleware");
+const applicationRoutes = require("./routes/applicationRouters");
 
 require("dotenv").config();
 
 const app = express();
 
-//to take the json data from frontend
+// middleware
 app.use(express.json());
-
-app.use('/api/auth', authRoutes);
-
-// Enable CORS for all routes
 app.use(cors());
 
-//connect to MongoDB
-mongoose
-    .connect(process.env.MONGO_URI)
-    .then(() =>{
-        console.log("MongoDB connected successfully");
-    })
-    .catch((error) => {
-        console.log("MongoDB connection error: ", error);
-    });
+// routes
+app.use("/api/auth", authRoutes);
+app.use("/api/jobs", jobRoutes);
+app.use("/api/applications", applicationRoutes);
 
-//test route
-app.get("/",(req, res) =>{
-    res.send("Job Portal Backend is running");
-});
-
-// Sample route
+// test route
 app.get("/", (req, res) => {
-    res.send("Welcome to the Job Portal Backend!");
+  res.send("Job Portal Backend is running");
 });
 
-// Test User Model
-async function testUserModel() {
-    const user = new User({
-        name: "Test user",
-        email: "testuser@gmail.com",
-        password: "password123",
-        role: "candidate"
-    });
+// protected route
+app.get("/api/protected", protect, (req, res) => {
+  res.json({
+    message: "You have accessed a protected route",
+    user: req.user,
+  });
+});
 
-    await user.save();
-    console.log("Test user saved:");
-}
+// employer-only route
+app.get(
+  "/api/employer-only",
+  protect,
+  allowRoles("employer"),
+  (req, res) => {
+    res.json({ message: "Welcome Employer!" });
+  }
+);
+
+// database connection
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected successfully"))
+  .catch((error) => console.log("MongoDB connection error:", error));
 
 const PORT = 5000;
-app.listen(PORT, () =>{
-    console.log(`Server is running on port ${PORT}`);
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
