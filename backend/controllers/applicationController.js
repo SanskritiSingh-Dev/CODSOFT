@@ -57,8 +57,68 @@ async function getApplicationsForEmployer(req, res) {
   }
 }
 
+async function updateApplicationStatus(req, res) {
+  try {
+    const employerId = req.user.id;
+    const applicationId = req.params.applicationId;
+    const { status } = req.body;
+
+    // allowed statuses
+    const allowedStatuses = ["reviewed", "accepted", "rejected"];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
+    // find application
+    const application = await Application.findById(applicationId).populate(
+      "job"
+    );
+
+    if (!application) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    // check ownership: employer must own the job
+    if (application.job.postedBy.toString() !== employerId) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    application.status = status;
+    await application.save();
+
+    res.json({
+      message: "Application status updated successfully",
+      application,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+async function getApplicationsForCandidate(req, res) {
+  try {
+    const candidateId = req.user.id;
+
+    const applications = await Application.find({
+      candidate: candidateId,
+    })
+      .populate("job", "title company location jobType")
+      .populate("job.postedBy", "name email")
+      .sort({ createdAt: -1 });
+
+    res.json({
+      totalApplications: applications.length,
+      applications,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
 
 module.exports = {
     applyToJob,
     getApplicationsForEmployer,
+    updateApplicationStatus,
+    getApplicationsForCandidate
 };      
