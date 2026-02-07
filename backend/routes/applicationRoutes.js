@@ -1,36 +1,36 @@
 const express = require("express");
 const router = express.Router();
-
-const {applyToJob} = require("../controllers/applicationController");
+const Application = require("../models/Application");
 const { protect, allowRoles } = require("../middleware/authMiddleware");
-const {getApplicationsForEmployer} = require("../controllers/applicationController");
-const {updateApplicationStatus} = require("../controllers/applicationController");
-const {getApplicationsForCandidate} = require("../controllers/applicationController");
-//candidate applies to job
-router.post("/:jobId", protect, allowRoles("candidate"), applyToJob);
 
-// employer views applications for their jobs
-router.get(
-  "/employer",
-  protect,
-  allowRoles("employer"),
-  getApplicationsForEmployer
-);
-
-// employer updates application status
-router.patch(
-  "/:applicationId/status",
-  protect,
-  allowRoles("employer"),
-  updateApplicationStatus
-);
-
-// candidate views their applications
-router.get(
-  "/candidate",
+// Apply for a job
+router.post(
+  "/",
   protect,
   allowRoles("candidate"),
-  getApplicationsForCandidate
+  async (req, res) => {
+    try {
+      const { jobId } = req.body;
+
+      const application = await Application.create({
+        job: jobId,
+        applicant: req.user._id,
+      });
+
+      res.status(201).json({
+        message: "Job applied successfully",
+        application,
+      });
+    } catch (error) {
+      if (error.code === 11000) {
+        return res.status(400).json({
+          message: "You have already applied for this job",
+        });
+      }
+
+      res.status(500).json({ message: "Failed to apply for job" });
+    }
+  }
 );
 
 module.exports = router;

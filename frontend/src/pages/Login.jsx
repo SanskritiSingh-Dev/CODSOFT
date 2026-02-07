@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
+
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -11,6 +12,7 @@ function Login() {
 
     try {
       const response = await api.post('/auth/login', { email, password });
+      //save auth info
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('role', response.data.role);
       alert('Login successful!');
@@ -23,9 +25,10 @@ function Login() {
         navigate('/jobs');
       }
     } catch (error) {
-      alert(error.response?.data?.message || "Login failed. Please try again.");
-    }
+      console.error(error.response?.data || error.message);
+      alert("Login failed");
   }
+}
 
   return (
     <div>

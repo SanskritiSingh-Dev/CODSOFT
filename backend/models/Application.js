@@ -17,9 +17,9 @@ const applicationSchema = new mongoose.Schema({
     enum: ["applied", "reviewed", "accepted", "rejected"],
     default: "applied",
   },
-  coverLetter: {
-    type: String,
-  },
 }, { timestamps: true });
+
+//prevent duplicate applications
+applicationSchema.index({ job: 1, applicant: 1 }, { unique: true });
 
 module.exports = mongoose.model("Application", applicationSchema);
